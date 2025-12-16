@@ -1,12 +1,3 @@
-"""
-AI Codebook Generator - Multi-API Thematic Analysis
-=====================================================
-Script for comparing thematic analysis outputs across multiple AI platforms.
-Designed for research on AI-assisted qualitative analysis of focus group data.
-
-Usage: python ai_codebook_generator.py --iterations 20 --prompt contextual
-"""
-
 import os
 import csv
 import time
@@ -43,24 +34,49 @@ import requests
 class Config:
     """API configuration - set your keys here or via environment variables"""
     
+    # ==========================================================================
+    # >>> FOCUS GROUP DATA FILE PATH <<<
+    # ==========================================================================
+    # 
+    # DECLARE YOUR LOCAL TRANSCRIPTION FILE HERE:
+    # Point this to your focus group transcription file.
+    # Accepts: .txt, .md, .docx, or any plain text format
+    #
+    # Examples:
+    #   FOCUS_GROUP_FILE = "/Users/yourname/Documents/focus_group_notes.txt"
+    #   FOCUS_GROUP_FILE = "C:/Users/yourname/Desktop/puerto_rico_transcripts.txt"
+    #   FOCUS_GROUP_FILE = "./data/kidenga_focus_group.txt"
+    #
+    # ==========================================================================
+    
+    FOCUS_GROUP_FILE = "./focus_group_transcription.txt"  # <-- CHANGE THIS PATH
+    
+    # ==========================================================================
     # API Keys (set via environment variables for security)
+    # ==========================================================================
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
     ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
     PERPLEXITY_API_KEY = os.getenv("PERPLEXITY_API_KEY", "")
     XAI_API_KEY = os.getenv("XAI_API_KEY", "")  # Grok
     
+    # ==========================================================================
     # Model identifiers
-    OPENAI_MODEL = "gpt-5.1"  
+    # ==========================================================================
+    OPENAI_MODEL = "gpt-4o"  # Note: GPT-5.2 not yet available, adjust when released
     ANTHROPIC_MODEL = "claude-sonnet-4-20250514"
     GOOGLE_MODEL = "gemini-1.5-pro"
     PERPLEXITY_MODEL = "llama-3.1-sonar-large-128k-online"
     GROK_MODEL = "grok-2-latest"
     
+    # ==========================================================================
     # Rate limiting (seconds between requests)
+    # ==========================================================================
     REQUEST_DELAY = 2
     
-    # Output directory
+    # ==========================================================================
+    # Output directory for CSV results
+    # ==========================================================================
     OUTPUT_DIR = Path("./output")
 
 
@@ -465,8 +481,8 @@ def main():
     parser.add_argument(
         "--data", "-d",
         type=str,
-        required=True,
-        help="Path to focus group data file"
+        default=None,  # Will use Config.FOCUS_GROUP_FILE if not provided
+        help="Path to focus group data file (optional if set in Config.FOCUS_GROUP_FILE)"
     )
     parser.add_argument(
         "--iterations", "-i",
@@ -500,12 +516,25 @@ def main():
         setup_env_file()
         return
     
-    # Load focus group data
+    # =========================================================================
+    # LOAD FOCUS GROUP DATA
+    # =========================================================================
+    # Priority: 
+    #   1. Command line --data argument
+    #   2. Config.FOCUS_GROUP_FILE setting
+    # =========================================================================
+    
+    data_path = args.data if args.data else Config.FOCUS_GROUP_FILE
+    
     try:
-        focus_group_data = load_focus_group_data(args.data)
-        print(f"Loaded focus group data: {len(focus_group_data)} characters")
+        focus_group_data = load_focus_group_data(data_path)
+        print(f"Loaded focus group data from: {data_path}")
+        print(f"Data size: {len(focus_group_data)} characters (~{len(focus_group_data.split())} words)")
     except FileNotFoundError as e:
         print(f"Error: {e}")
+        print(f"\nPlease either:")
+        print(f"  1. Set FOCUS_GROUP_FILE in the Config class (line ~35)")
+        print(f"  2. Use --data argument: python ai_codebook_generator.py --data your_file.txt")
         return
     
     # Initialize generator
@@ -529,3 +558,32 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# =============================================================================
+# QUICK START - ALTERNATIVE TO COMMAND LINE
+# =============================================================================
+# 
+# If you prefer not to use command line arguments, you can run the script
+# directly by uncommenting the code below and setting your paths:
+#
+# -----------------------------------------------------------------------------
+# from pathlib import Path
+# 
+# # 1. Set your file path in Config.FOCUS_GROUP_FILE above (around line 35)
+# # 2. Set your API keys as environment variables
+# # 3. Uncomment and run this block:
+#
+# if __name__ == "__main__":
+#     # Load your data
+#     data = load_focus_group_data(Config.FOCUS_GROUP_FILE)
+#     
+#     # Initialize
+#     generator = CodebookGenerator(focus_group_data=data)
+#     
+#     # Run with your desired iterations
+#     generator.run_full_experiment(
+#         iteration_counts=[20, 30, 50],  # Adjust as needed
+#         prompt_types=["contextual", "minimal"]
+#     )
+# -----------------------------------------------------------------------------
